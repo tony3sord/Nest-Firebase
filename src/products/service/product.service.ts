@@ -8,7 +8,7 @@ import {
   getDatabase,
   remove,
 } from 'firebase/database';
-import { app } from 'src/firebase.config'; // Asegúrate de exportar 'app' desde tu archivo de configuración de Firebase
+import { app } from 'src/firebase.config';
 import { CreateProductDto, UpdateProductDto } from '../dto';
 
 const database = getDatabase(app);
