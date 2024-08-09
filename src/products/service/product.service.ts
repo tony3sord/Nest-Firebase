@@ -7,6 +7,7 @@ import {
   set,
   getDatabase,
   remove,
+  update,
 } from 'firebase/database';
 import { app } from 'src/firebase.config';
 import { CreateProductDto, UpdateProductDto } from '../dto';
@@ -71,7 +72,7 @@ export class ProductService {
   async updateProduct(id: string, body: UpdateProductDto): Promise<void> {
     try {
       const productRef = ref(database, `Product/${id}`);
-      return await set(productRef, body);
+      return await update(productRef, body);
     } catch (error) {
       console.error('Error al actualizar el producto:', error);
       throw new HttpException(
