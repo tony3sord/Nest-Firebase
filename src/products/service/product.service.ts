@@ -1,33 +1,17 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
-import {
-  DataSnapshot,
-  get,
-  push,
-  ref,
-  set,
-  getDatabase,
-  remove,
-  update,
-} from 'firebase/database';
-import { app } from 'src/firebase.config';
+import { Injectable, HttpException, HttpStatus, Inject } from '@nestjs/common';
 import { CreateProductDto, UpdateProductDto } from '../dto';
-
-const database = getDatabase(app);
-
-const dataRef = ref(database, 'Product');
+import { IProductRepository } from '../repository/products.repository.interface';
+import { PRODUCT_REPOSITORY_TOKEN } from '../constants/const';
 
 @Injectable()
 export class ProductService {
+  constructor(
+    @Inject(PRODUCT_REPOSITORY_TOKEN)
+    private readonly productRepository: IProductRepository,
+  ) {}
   async getProducts() {
     try {
-      const snapshot: DataSnapshot = await get(dataRef);
-      if (snapshot.val() == null) {
-        return {
-          message: 'No se encontraron datos, lo sentimos (:',
-          status: HttpStatus.NOT_FOUND,
-        };
-      }
-      return snapshot.val();
+      return await this.productRepository.getProducts();
     } catch (error) {
       console.error('Error al obtener productos:', error);
       throw new HttpException(
@@ -39,15 +23,7 @@ export class ProductService {
 
   async getProduct(id: string) {
     try {
-      const productRef = ref(database, `Product/${id}`);
-      const snapshot: DataSnapshot = await get(productRef);
-      if (snapshot.val() === null) {
-        throw new HttpException(
-          'Producto no encontrado (:',
-          HttpStatus.NOT_FOUND,
-        );
-      }
-      return snapshot.val();
+      return await this.productRepository.getProduct(id);
     } catch (error) {
       console.error('Error al obtener el producto:', error);
       throw new HttpException(
@@ -59,8 +35,7 @@ export class ProductService {
 
   async createProduct(body: CreateProductDto): Promise<void> {
     try {
-      const newElementRef = push(dataRef, { dataRef: body });
-      return await set(newElementRef, body);
+      return await this.productRepository.createProduct(body);
     } catch (error) {
       throw new HttpException(
         'No se pudo crear el producto',
@@ -71,8 +46,10 @@ export class ProductService {
 
   async updateProduct(id: string, body: UpdateProductDto): Promise<void> {
     try {
-      const productRef = ref(database, `Product/${id}`);
-      return await update(productRef, body);
+      const product = await this.productRepository.getProduct(id);
+      console.log(product);
+      if (product) return await this.productRepository.updateProduct(id, body);
+      throw new HttpException('Producto no encontrado', HttpStatus.NOT_FOUND);
     } catch (error) {
       console.error('Error al actualizar el producto:', error);
       throw new HttpException(
@@ -84,10 +61,11 @@ export class ProductService {
 
   async deleteProduct(id: string): Promise<void> {
     try {
-      const productRef = ref(database, `Product/${id}`);
-      return await remove(productRef);
+      const product = await this.productRepository.getProduct(id);
+      if (product) return await this.productRepository.deleteProduct(id);
+      throw new HttpException('Producto no encontrado', HttpStatus.NOT_FOUND);
     } catch (error) {
-      console.error('Error al eliminar el producto:', error);
+      console.error('Error al eliminar el producto:', error.message);
       throw new HttpException(
         'No se pudo eliminar el producto',
         HttpStatus.INTERNAL_SERVER_ERROR,
